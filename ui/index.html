@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>OpsPilot AI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #6b7280;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            resize: vertical;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .answer {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .metadata {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .status {
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+
+        .success {
+            color: #16a34a;
+        }
+        .answer pre {
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.answer code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 14px;
+}
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>OpsPilot AI 🚀</h1>
+        <p>Internal AI Assistant for DevOps Teams</p>
+    </div>
+
+    <div class="card">
+
+        <label for="question">
+            <strong>Ask a DevOps question</strong>
+        </label>
+
+        <textarea
+            id="question"
+            placeholder="Example: How do I troubleshoot a Kubernetes CrashLoopBackOff?"
+        ></textarea>
+
+        <button id="askButton" onclick="askOpsPilot()">
+            Ask OpsPilot
+        </button>
+
+        <div id="result" class="result">
+
+            <div id="status" class="status"></div>
+
+            <div class="answer" id="answer"></div>
+
+            <div class="metadata">
+                <div>
+                    <strong>Source:</strong>
+                    <span id="sources"></span>
+                </div>
+
+                <div>
+                    <strong>Relevance:</strong>
+                    <span id="relevance"></span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function formatAnswer(text) {
+
+    // Escape HTML to prevent raw HTML from being rendered
+    text = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Convert fenced code blocks
+    text = text.replace(
+        /```(?:bash|shell|sh)?\s*([\s\S]*?)```/gi,
+        '<pre><code>$1</code></pre>'
+    );
+
+    // Convert bold text
+    text = text.replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+    // Convert line breaks
+    text = text.replace(/\n/g, "<br>");
+
+    return text;
+}
+
+async function askOpsPilot() {
+
+    const questionInput = document.getElementById("question");
+    const button = document.getElementById("askButton");
+    const result = document.getElementById("result");
+
+    const status = document.getElementById("status");
+    const answer = document.getElementById("answer");
+    const sources = document.getElementById("sources");
+    const relevance = document.getElementById("relevance");
+
+    const question = questionInput.value.trim();
+
+    if (!question) {
+
+        result.style.display = "block";
+
+        status.textContent = "Please enter a question.";
+        status.className = "status error";
+
+        answer.textContent = "";
+        sources.textContent = "";
+        relevance.textContent = "";
+
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Thinking...";
+
+    result.style.display = "block";
+
+    status.textContent = "OpsPilot is processing your question...";
+    status.className = "status";
+
+    answer.textContent = "";
+    sources.textContent = "";
+    relevance.textContent = "";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/ask",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    question: question
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Request failed."
+            );
+        }
+
+        status.textContent =
+            data.relevant
+                ? "Relevant knowledge found ✓"
+                : "No relevant knowledge found";
+
+        status.className =
+            data.relevant
+                ? "status success"
+                : "status error";
+
+        answer.innerHTML = formatAnswer(data.answer);
+
+        sources.textContent =
+            data.sources.length
+                ? data.sources.join(", ")
+                : "None";
+
+        relevance.textContent =
+            data.relevance_decision;
+
+    } catch (error) {
+
+        status.textContent =
+            "Unable to connect to OpsPilot API.";
+
+        status.className = "status error";
+
+        answer.textContent = error.message;
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Ask OpsPilot";
+    }
+}
+
+</script>
+
+</body>
+</html>
