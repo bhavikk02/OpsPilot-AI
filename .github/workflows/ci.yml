@@ -9,6 +9,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
   AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
@@ -27,6 +31,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Azure Login
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install dependencies
         run: |
@@ -50,3 +62,22 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t opspilot-ai:ci .
+
+      - name: Login to Azure Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          az acr login --name opspilotaiacr01
+
+      - name: Push Docker image to ACR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name opspilotaiacr01 \
+            --query loginServer \
+            --output tsv)
+
+          docker tag opspilot-ai:ci \
+            $ACR_LOGIN_SERVER/opspilot-ai:${GITHUB_SHA}
+
+          docker push \
+            $ACR_LOGIN_SERVER/opspilot-ai:${GITHUB_SHA}
