@@ -81,3 +81,16 @@ jobs:
 
           docker push \
             $ACR_LOGIN_SERVER/opspilot-ai:${GITHUB_SHA}
+      
+      - name: Deploy to Azure Container Apps
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show \
+            --name opspilotaiacr01 \
+            --query loginServer \
+            --output tsv)
+
+          az containerapp update \
+            --name opspilot-ai \
+            --resource-group opspilot-ai-rg \
+            --image $ACR_LOGIN_SERVER/opspilot-ai:${GITHUB_SHA}
