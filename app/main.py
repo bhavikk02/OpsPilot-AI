@@ -1,5 +1,10 @@
 import logging
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,7 +37,9 @@ app = FastAPI(
     description="Internal AI Assistant for DevOps Teams",
     version="1.0.0"
 )
+
 UI_PATH = Path(__file__).resolve().parent.parent / "ui"
+
 
 @app.get("/", include_in_schema=False)
 def serve_ui():
@@ -50,6 +57,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ============================================================
 # 2. Request model
@@ -75,18 +83,7 @@ class Question(BaseModel):
 
 
 # ============================================================
-# 3. Home endpoint
-# ============================================================
-
-@app.get("/")
-def home():
-    return {
-        "message": "Welcome to OpsPilot AI 🚀"
-    }
-
-
-# ============================================================
-# 4. Health endpoint
+# 3. Health endpoint
 # ============================================================
 
 @app.get("/health")
@@ -98,7 +95,7 @@ def health():
 
 
 # ============================================================
-# 5. Ask endpoint
+# 4. Ask endpoint
 # ============================================================
 
 @app.post("/ask")
