@@ -1,4 +1,4 @@
-# OpsPilot AI 🚀
+# OpsPilot AI 
 
 AI-powered DevOps assistant that uses Retrieval-Augmented Generation (RAG) to answer infrastructure and DevOps troubleshooting questions from a curated internal knowledge base.
 
